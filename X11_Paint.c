@@ -8,8 +8,9 @@ XWindowAttributes wa;
 button *bt_arr[BUTTON_AMOUNT];
 
 int main(int argc, char* argv[]){
-	char bg[16] = "White";		// Window background
-	// Handle args as needed.
+	char bg[16] = BACKGROUND_COLOR;	// Window background default
+	
+	// Handle args as needed. TODO: Wtite a function and use a Switch
 	if(argc == 2 && !strcmp("-v", argv[1])){
 		fprintf(stdout, "XPaint versoin %s\n", VERSION);
 		return 0;
@@ -24,6 +25,7 @@ int main(int argc, char* argv[]){
 		}
 	}
 	// Try Opening a connection to Xorg server and check if it worked
+
 	if((dpy = XOpenDisplay(NULL)) == NULL){
 		fprintf(stderr, "Couldn't open display\n Shutting down...\n");
 		return 1;
@@ -40,19 +42,21 @@ int main(int argc, char* argv[]){
 
 // Initial drawing of the main window
 void init_main_window(char *bg){
+	// These are the event types I want to wait for.
 	unsigned long int mask = ButtonPressMask | ButtonReleaseMask | ExposureMask | StructureNotifyMask;
 	Window root = XDefaultRootWindow(dpy);
-	// Generate main window
+	
+	// Generate main window, Tell X what events to wait for through mask, display the window.
 	main_win = XCreateSimpleWindow(dpy, root, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, LINE_SIZE, get_color("Pink"), get_color(bg));
-	// Select what events to respond to
 	XSelectInput(dpy, main_win, mask);
-	// Show the main window on the screen
 	XMapWindow(dpy, main_win);
 }
 
+// Set the values for the GC, there's no point in setting a crap load right now
+// since I can do this at a later point in time through separate functions
 GC init_gc(char *bg){
-	XGCValues gcvals;
-	unsigned long int vals = GCBackground | GCForeground;
+	XGCValues gcvals;	// Struct w/ options
+	unsigned long int vals = GCBackground | GCForeground; // Flags indication what we're changing
 
 	gcvals.background = get_color(bg);
 	gcvals.foreground = get_color("Black");
@@ -71,13 +75,17 @@ unsigned long get_color(const char* color_name){
 }
 
 // Return the GC with the colors we want, bg doesn't seem to be used for much.
+// also changes the line size, not much use for that yet though. Should Make separate? TODO:
 GC change_color(const char* fg, const char* bg){
-	XGCValues gcvals;
-	unsigned long int vals = GCForeground | GCBackground | GCLineWidth;
+	int line = 0;		// TODO: Will move into delaration unless I'll discard it completely from
+				// this func
+	XGCValues gcvals;	// Struct
+	unsigned long int vals = GCForeground | GCBackground | GCLineWidth; // Flags
 
 	gcvals.foreground = get_color(fg);
 	gcvals.background = get_color(bg);
-	gcvals.line_width = LINE_SIZE;
+	if(line == 0) line = LINE_SIZE;
+	gcvals.line_width = line;
 
 	return XCreateGC(dpy, main_win, vals, &gcvals);
 }
@@ -100,12 +108,15 @@ void draw_button(button *bt) {
 	}
 	break;
 	case EXIT:
+		// TODO: Make an X.
 	break;
 	case CHANGE_GC:
+		// TODO: Change line size/width/whatever.
 	break;
 	}
 }
 
+// Called on mouse button _release_
 int mouse_event(bt_shape_id *shape, int bp_x, int bp_y, GC *gc){
 	int i;
 	
@@ -116,7 +127,7 @@ int mouse_event(bt_shape_id *shape, int bp_x, int bp_y, GC *gc){
 				*gc = change_color(bt_arr[i]->mode.color, "Black");
 				break;
 			case SHAPE:
-			*shape = bt_arr[i]->mode.shape_id;
+			*shape = bt_arr[i]->mode.shape_id;	// So we can what to do/draw later on
 			break;
 			case CHANGE_GC:
 			// TODO: Handle this, mostly LINE_SIZE, for now.
@@ -140,6 +151,8 @@ int ev_loop(){
 	int bp_x, bp_y;		// X&Y on mouse button press.
 	int br_x, br_y;		// X&Y on mouse button release.
 	int w, h;
+
+
 
 	button bt_close, bt_line, bt_rectangle, bt_red, bt_blue;
 	bt_shape_id shape = LINE;
@@ -207,13 +220,18 @@ int ev_loop(){
 			case ButtonRelease:
 				br_x = ev.xbutton.x;
 				br_y = ev.xbutton.y;
-				w = br_x - bp_x;
-				h = br_y - bp_y;
+				w = br_x - bp_x;	// Get the Width we need to draw w/e
+				h = br_y - bp_y;	// Get the Height
 
+				// Avoid negative values, TODO: should be a more elegant way.
 				if(w < 0){ w = w * (-1);}
 				if(h < 0){ h = h * (-1);}
 
+			// Find out where the mouse is, compare to button locations, decide what to do
+			// in all appropriate cases (Exit, Draw, etc, etc);
+			// Quit events are handled inside mouse_event also.
 			quit = mouse_event(&shape, bp_x, bp_y, &gc);
+
 			if(quit == 0){
 				switch(shape){
 					case LINE:
@@ -245,6 +263,9 @@ int ev_loop(){
 			}
 			break;
 			case DestroyNotify:
+				// TODO: How to exit gracfully when internal Close button doesn't work
+				XFreeGC(GC);
+				XCloseDisplay(dpy);
 				quit = 1;
 			break;
 		}

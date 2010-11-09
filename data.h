@@ -1,6 +1,7 @@
 //#include "X11_Paint.c"
 
-// Standard
+// Standard; This is kinda shitty, but I might be adding more files to the project later on.
+// so I'd rather be on the safe side of things. Blarghh...
 #ifndef STDIO_H
 	#include <stdio.h>
 	#define STDIO_H
@@ -15,7 +16,7 @@
 	#define STRING_H
 #endif
 
-//X11
+//X11 specific libs, wonder if I can get away with only Xlib itself.
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
@@ -28,19 +29,23 @@
 #define BACKGROUND_COLOR "White"
 #define FOREGROUND_COLOR "Black"
 
+
+// TODO: Need this damn crap more dynamic. Linked list maybe?
 #define BUTTON_AMOUNT 5
 #define BUTTON_WIDTH 20
 #define BUTTON_HEIGHT 20
 #define BUTTON_DIST 3		// Distance of buttons lined in a row
 
 #define LINE_SIZE 1
-// Consider validity of using this struct.
+// Consider validity of using this struct, this isn't used insofar.
+/*
 typedef struct _display_info{
 	Display *dpy;
 	Window root;
 	Window win_main;
 	int screen;	
 } display_info;
+*/
 
 // What the button does
 typedef enum _bt_type { COLOR, SHAPE, EXIT, CHANGE_GC } bt_type;
